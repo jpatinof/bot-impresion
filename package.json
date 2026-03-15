@@ -1,0 +1,24 @@
+{
+  "name": "bot-impresion",
+  "version": "1.0.0",
+  "description": "Bot de WhatsApp para imprimir documentos en Windows y Linux",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jpatinof/bot-impresion.git"
+  },
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "start:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File windows\\tray.ps1",
+    "validate": "node --check index.js",
+    "release:prepare": "node scripts/prepare-release.js",
+    "release:check-local": "powershell -NoProfile -ExecutionPolicy Bypass -File windows\\update-helper.ps1 -CheckOnly -ManifestPath release\\latest.json",
+    "release:publish": "powershell -NoProfile -ExecutionPolicy Bypass -File windows\\publish-github-release.ps1"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^0.1.69",
+    "pdfjs-dist": "^5.4.394",
+    "whatsapp-web.js": "^1.26.0",
+    "qrcode-terminal": "^0.12.0"
+  }
+}

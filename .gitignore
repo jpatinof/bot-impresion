@@ -1,0 +1,11 @@
+node_modules/
+downloads/
+temp/
+.wwebjs_auth/
+.wwebjs_cache/
+users.json
+release/*.zip
+release/*.txt
+*.log
+Thumbs.db
+.DS_Store

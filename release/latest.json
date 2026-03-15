@@ -1,0 +1,10 @@
+{
+  "version": "1.0.0",
+  "downloadUrl": "https://github.com/jpatinof/bot-impresion/releases/latest/download/bot-impresion-windows.zip",
+  "publishedAt": "2026-03-15T03:01:12.158Z",
+  "notesUrl": "",
+  "assets": {
+    "installer": "bot-impresion-windows.zip",
+    "manifest": "latest.json"
+  }
+}

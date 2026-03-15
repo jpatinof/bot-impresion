@@ -1,0 +1,10 @@
+{
+  "manifestUrl": "https://github.com/jpatinof/bot-impresion/releases/latest/download/latest.json",
+  "currentVersion": "1.0.0",
+  "appName": "Bot Impresion",
+  "downloadDirectory": "downloads",
+  "githubRepo": "jpatinof/bot-impresion",
+  "manifestAssetName": "latest.json",
+  "installerAssetName": "bot-impresion-windows.zip",
+  "releaseNotesUrl": ""
+}
