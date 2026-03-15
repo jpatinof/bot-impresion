@@ -9,9 +9,14 @@ const { createCanvas } = require('@napi-rs/canvas');
 const execFileAsync = promisify(execFile);
 
 const IS_WINDOWS = process.platform === 'win32';
+const APP_HOME = process.env.BOT_IMPRESION_HOME || __dirname;
+const APP_DATA_DIR = process.env.BOT_IMPRESION_DATA_DIR
+    || (IS_WINDOWS && process.env.LOCALAPPDATA
+        ? path.join(process.env.LOCALAPPDATA, 'BotImpresion', 'data')
+        : APP_HOME);
 const PRINTER_NAME = process.env.PRINTER_NAME || 'L220';
-const USERS_FILE = path.join(__dirname, 'users.json');
-const TEMP_DIR = path.join(__dirname, 'temp');
+const USERS_FILE = path.join(APP_DATA_DIR, 'users.json');
+const TEMP_DIR = path.join(APP_DATA_DIR, 'temp');
 const WINDOWS_DIR = path.join(__dirname, 'windows');
 const PASSWORD_MAX_ATTEMPTS = 3;
 const PASSWORD_TTL_MS = 10 * 60 * 1000;
@@ -853,7 +858,9 @@ async function handleIncomingMediaMessage(msg) {
 }
 
 const client = new Client({
-    authStrategy: new LocalAuth(),
+    authStrategy: new LocalAuth({
+        dataPath: path.join(APP_DATA_DIR, '.wwebjs_auth')
+    }),
     puppeteer: {
         executablePath: findBrowserExecutable(),
         args: [
@@ -925,6 +932,7 @@ client.on('message', async (msg) => {
     }
 });
 
+ensureDirectory(APP_DATA_DIR);
 ensureDirectory(TEMP_DIR);
 setInterval(purgeExpiredPasswordRequests, 60 * 1000).unref();
 

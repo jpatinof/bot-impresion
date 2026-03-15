@@ -2,6 +2,7 @@ param(
     [string]$Repo,
     [string]$ManifestPath,
     [string]$InstallerPath,
+    [string]$PackagePath,
     [string]$Tag,
     [switch]$DryRun
 )
@@ -35,6 +36,13 @@ if ([string]::IsNullOrWhiteSpace($InstallerPath)) {
     }
 }
 
+if ([string]::IsNullOrWhiteSpace($PackagePath)) {
+    $candidatePackage = Join-Path (Split-Path -Parent $ManifestPath) 'bot-impresion-windows-package.zip'
+    if (Test-Path -LiteralPath $candidatePackage) {
+        $PackagePath = $candidatePackage
+    }
+}
+
 if ([string]::IsNullOrWhiteSpace($Tag)) {
     $Tag = "v$([string]$manifest.version)"
 }
@@ -43,6 +51,10 @@ $commandParts = @('gh', 'release', 'create', $Tag)
 
 if (-not [string]::IsNullOrWhiteSpace($InstallerPath)) {
     $commandParts += $InstallerPath
+}
+
+if (-not [string]::IsNullOrWhiteSpace($PackagePath)) {
+    $commandParts += $PackagePath
 }
 
 $commandParts += $ManifestPath
@@ -68,6 +80,7 @@ if ($DryRun -or -not (Get-Command gh.exe -ErrorAction SilentlyContinue)) {
         tag = $Tag
         manifestPath = $ManifestPath
         installerPath = $InstallerPath
+        packagePath = $PackagePath
         command = $commandText
         message = 'gh no esta disponible o se pidio DryRun. Ejecuta el comando manualmente.'
     } | ConvertTo-Json -Depth 4
@@ -82,6 +95,10 @@ $assets = @()
 
 if (-not [string]::IsNullOrWhiteSpace($InstallerPath)) {
     $assets += $InstallerPath
+}
+
+if (-not [string]::IsNullOrWhiteSpace($PackagePath)) {
+    $assets += $PackagePath
 }
 
 $assets += $ManifestPath

@@ -50,7 +50,7 @@ function main() {
   if (args.help === 'true') {
     process.stdout.write([
       'Uso:',
-      '  npm run release:prepare -- --repo OWNER/REPO --installer bot-impresion-windows.zip',
+      '  npm run release:prepare -- --repo OWNER/REPO --installer bot-impresion-setup.exe',
       '',
       'Opciones:',
       '  --version         Version a publicar. Default: package.json version',
@@ -71,7 +71,7 @@ function main() {
   const updaterConfig = JSON.parse(fs.readFileSync(updaterConfigPath, 'utf8'));
   const version = args.version || packageJson.version;
   const githubRepo = args.repo || updaterConfig.githubRepo || '';
-  const installerAssetName = args.installer || updaterConfig.installerAssetName || 'bot-impresion-windows.zip';
+  const installerAssetName = args.installer || updaterConfig.installerAssetName || 'bot-impresion-setup.exe';
   const manifestAssetName = args['manifest-asset'] || updaterConfig.manifestAssetName || 'latest.json';
   const notesUrl = args['notes-url'] || updaterConfig.releaseNotesUrl || '';
   const publishedAt = args['published-at'] || new Date().toISOString();
@@ -123,10 +123,11 @@ function main() {
     `3. Sube estos assets a la release:`,
     `   - ${path.relative(projectRoot, outputPath)}`,
     `   - <ruta a ${installerAssetName}>`,
+    '   - <ruta a bot-impresion-windows-package.zip> (opcional, recomendado)',
     '',
     githubRepo
-      ? `Comando gh sugerido: gh release create ${tag} "${installerAssetName}" "${path.relative(projectRoot, outputPath)}" --repo ${githubRepo} --title "${tag}"`
-      : 'Comando gh sugerido: gh release create <tag> <installer> <manifest> --repo OWNER/REPO --title <tag>',
+      ? `Comando gh sugerido: gh release create ${tag} "${installerAssetName}" "bot-impresion-windows-package.zip" "${path.relative(projectRoot, outputPath)}" --repo ${githubRepo} --title "${tag}"`
+      : 'Comando gh sugerido: gh release create <tag> <installer> <package-zip> <manifest> --repo OWNER/REPO --title <tag>',
     '',
     `Manifest remoto esperado: ${manifestUrl}`,
     `Asset remoto esperado: ${downloadUrl}`

@@ -4,31 +4,37 @@ Bot de WhatsApp para recibir documentos y enviarlos a impresion en Windows y Lin
 
 ### Windows hoy
 
-El proyecto ya publica releases y manifiesto de actualizacion en GitHub, pero todavia no genera un instalador `.exe` real.
+El proyecto ya queda preparado para distribucion simple en Windows con instalador `.exe` y actualizacion desde la bandeja.
 
-- Asset principal actual: `bot-impresion-windows.zip`
+- Instalador principal: `bot-impresion-setup.exe`
+- Paquete auxiliar: `bot-impresion-windows-package.zip`
 - Manifest de actualizacion: `latest.json`
 - Repo publico: `https://github.com/jpatinof/bot-impresion`
 
 ### Instalar en Windows
 
-1. Descarga `bot-impresion-windows.zip` desde Releases.
-2. Extrae el ZIP en una carpeta fija, por ejemplo `C:\bot-impresion`.
-3. Instala Node.js 20 LTS o superior.
-4. Abre PowerShell en la carpeta extraida y ejecuta `npm install`.
-5. Si tu impresora no se llama `L220`, define `PRINTER_NAME` en tu sesion o en el sistema.
-6. Inicia el bot con `npm run start:windows`.
-7. Escanea el QR de WhatsApp cuando aparezca.
+1. Descarga `bot-impresion-setup.exe` desde Releases.
+2. Ejecuta el instalador.
+3. Espera a que cree la carpeta `%LOCALAPPDATA%\BotImpresion`, los accesos directos y arranque el bot.
+4. Escanea el QR de WhatsApp cuando aparezca.
+5. Si tu impresora no se llama `L220`, define `PRINTER_NAME` en Windows antes de iniciar de nuevo.
 
 ### Actualizar en Windows
 
-La bandeja de Windows puede comprobar actualizaciones y descargar el ZIP mas reciente, pero la sustitucion de archivos sigue siendo manual mientras no exista un instalador `.exe`.
+La bandeja de Windows puede comprobar actualizaciones y descargar/ejecutar la nueva version automaticamente cuando la release publique `latest.json` y `bot-impresion-setup.exe`.
 
 ### Desarrollo rapido
 
 - `npm install`
 - `npm run validate`
 - `npm start`
+
+### Construir instalador Windows
+
+- `npm run build:windows-installer`
+- Salida esperada en `release\`:
+  - `bot-impresion-setup.exe`
+  - `bot-impresion-windows-package.zip`
 
 ### Publicar una release
 

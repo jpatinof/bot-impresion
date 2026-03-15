@@ -1,6 +1,7 @@
 param(
     [switch]$CheckOnly,
     [switch]$InstallLatest,
+    [switch]$ApplyAfterDownload,
     [string]$ConfigPath,
     [string]$ManifestPath
 )
@@ -9,7 +10,22 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $scriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
-$projectRoot = Split-Path -Parent $scriptDirectory
+$projectRoot = if ($env:BOT_IMPRESION_HOME) {
+    $env:BOT_IMPRESION_HOME
+}
+else {
+    Split-Path -Parent $scriptDirectory
+}
+$installRoot = if ($env:BOT_IMPRESION_INSTALL_ROOT) {
+    $env:BOT_IMPRESION_INSTALL_ROOT
+}
+elseif ($env:LOCALAPPDATA) {
+    Join-Path $env:LOCALAPPDATA 'BotImpresion'
+}
+else {
+    $projectRoot
+}
+$versionFilePath = Join-Path $installRoot 'version.json'
 
 if ([string]::IsNullOrWhiteSpace($ConfigPath)) {
     $configPath = Join-Path $scriptDirectory 'updater-config.json'
@@ -23,10 +39,35 @@ if (-not (Test-Path -LiteralPath $configPath)) {
 }
 
 $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
-$downloadDirectory = Join-Path $projectRoot $config.downloadDirectory
+$downloadDirectory = if ([System.IO.Path]::IsPathRooted([string]$config.downloadDirectory)) {
+    [string]$config.downloadDirectory
+}
+else {
+    Join-Path $installRoot $config.downloadDirectory
+}
 
 if (-not (Test-Path -LiteralPath $downloadDirectory)) {
-    New-Item -ItemType Directory -Path $downloadDirectory | Out-Null
+    New-Item -ItemType Directory -Path $downloadDirectory -Force | Out-Null
+}
+
+function Get-InstalledVersion {
+    if (Test-Path -LiteralPath $versionFilePath) {
+        try {
+            $versionData = Get-Content -LiteralPath $versionFilePath -Raw | ConvertFrom-Json
+            if ($null -ne $versionData.version -and -not [string]::IsNullOrWhiteSpace([string]$versionData.version)) {
+                return [string]$versionData.version
+            }
+        }
+        catch {
+            Write-Warning "No se pudo leer version.json: $($_.Exception.Message)"
+        }
+    }
+
+    if ($null -ne $config.currentVersion -and -not [string]::IsNullOrWhiteSpace([string]$config.currentVersion)) {
+        return [string]$config.currentVersion
+    }
+
+    return '0.0.0'
 }
 
 function Get-Manifest {
@@ -86,25 +127,32 @@ function Compare-Version {
 function Get-ResultObject {
     param(
         [bool]$UpdateAvailable,
+        [string]$CurrentVersion,
         [string]$LatestVersion,
         [string]$DownloadUrl,
         [string]$InstallerPath,
         [bool]$IsInstaller,
+        [string]$InstallArguments,
+        [bool]$InstallerStarted,
         [string]$Message
     )
 
     [PSCustomObject]@{
         updateAvailable = $UpdateAvailable
-        currentVersion = [string]$config.currentVersion
+        currentVersion = $CurrentVersion
         latestVersion = $LatestVersion
         downloadUrl = $DownloadUrl
         installerPath = $InstallerPath
         isInstaller = $IsInstaller
+        installArguments = $InstallArguments
+        installerStarted = $InstallerStarted
+        installRoot = $installRoot
         message = $Message
     }
 }
 
 $manifest = Get-Manifest
+$currentVersion = Get-InstalledVersion
 $latestVersion = [string]$manifest.version
 $downloadUrl = if ($null -ne $manifest.downloadUrl) { [string]$manifest.downloadUrl } else { '' }
 
@@ -117,15 +165,15 @@ if ([string]::IsNullOrWhiteSpace($latestVersion) -or [string]::IsNullOrWhiteSpac
     throw 'El manifest remoto no contiene version o downloadUrl.'
 }
 
-$hasUpdate = (Compare-Version -Left $latestVersion -Right $config.currentVersion) -gt 0
+$hasUpdate = (Compare-Version -Left $latestVersion -Right $currentVersion) -gt 0
 
 if ($CheckOnly) {
-        if ($hasUpdate) {
-        Get-ResultObject -UpdateAvailable $true -LatestVersion $latestVersion -DownloadUrl $downloadUrl -InstallerPath '' -IsInstaller $false -Message 'Actualizacion disponible.' | ConvertTo-Json -Compress
-        }
-        else {
-        Get-ResultObject -UpdateAvailable $false -LatestVersion $latestVersion -DownloadUrl $downloadUrl -InstallerPath '' -IsInstaller $false -Message 'No hay actualizaciones disponibles.' | ConvertTo-Json -Compress
-        }
+    if ($hasUpdate) {
+        Get-ResultObject -UpdateAvailable $true -CurrentVersion $currentVersion -LatestVersion $latestVersion -DownloadUrl $downloadUrl -InstallerPath '' -IsInstaller $false -InstallArguments '' -InstallerStarted $false -Message 'Actualizacion disponible.' | ConvertTo-Json -Compress
+    }
+    else {
+        Get-ResultObject -UpdateAvailable $false -CurrentVersion $currentVersion -LatestVersion $latestVersion -DownloadUrl $downloadUrl -InstallerPath '' -IsInstaller $false -InstallArguments '' -InstallerStarted $false -Message 'No hay actualizaciones disponibles.' | ConvertTo-Json -Compress
+    }
 
     exit 0
 }
@@ -135,7 +183,7 @@ if (-not $InstallLatest) {
 }
 
 if (-not $hasUpdate) {
-    Get-ResultObject -UpdateAvailable $false -LatestVersion $latestVersion -DownloadUrl $downloadUrl -InstallerPath '' -IsInstaller $false -Message 'Ya estas en la ultima version.' | ConvertTo-Json -Compress
+    Get-ResultObject -UpdateAvailable $false -CurrentVersion $currentVersion -LatestVersion $latestVersion -DownloadUrl $downloadUrl -InstallerPath '' -IsInstaller $false -InstallArguments '' -InstallerStarted $false -Message 'Ya estas en la ultima version.' | ConvertTo-Json -Compress
     exit 0
 }
 
@@ -147,7 +195,11 @@ if ([string]::IsNullOrWhiteSpace($fileName)) {
 $installerPath = Join-Path $downloadDirectory $fileName
 Invoke-WebRequest -Uri $downloadUrl -OutFile $installerPath -UseBasicParsing -TimeoutSec 300
 
-$isInstaller = @('.exe', '.msi') -contains ([System.IO.Path]::GetExtension($installerPath).ToLowerInvariant())
+$installerExtension = [System.IO.Path]::GetExtension($installerPath).ToLowerInvariant()
+$isInstaller = @('.exe', '.msi') -contains $installerExtension
+$installArguments = if ($installerExtension -eq '.exe') { '/Q' } else { '' }
+$installerStarted = $false
+
 $downloadMessage = if ($isInstaller) {
     'Actualizacion descargada. Instalador listo.'
 }
@@ -155,4 +207,16 @@ else {
     'Actualizacion descargada. Abre el paquete y reemplaza tu copia actual manualmente.'
 }
 
-Get-ResultObject -UpdateAvailable $true -LatestVersion $latestVersion -DownloadUrl $downloadUrl -InstallerPath $installerPath -IsInstaller $isInstaller -Message $downloadMessage | ConvertTo-Json -Compress
+if ($ApplyAfterDownload -and $isInstaller) {
+    if ([string]::IsNullOrWhiteSpace($installArguments)) {
+        Start-Process -FilePath $installerPath | Out-Null
+    }
+    else {
+        Start-Process -FilePath $installerPath -ArgumentList $installArguments | Out-Null
+    }
+
+    $installerStarted = $true
+    $downloadMessage = 'Actualizacion descargada y ejecutando instalador.'
+}
+
+Get-ResultObject -UpdateAvailable $true -CurrentVersion $currentVersion -LatestVersion $latestVersion -DownloadUrl $downloadUrl -InstallerPath $installerPath -IsInstaller $isInstaller -InstallArguments $installArguments -InstallerStarted $installerStarted -Message $downloadMessage | ConvertTo-Json -Compress

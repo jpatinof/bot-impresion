@@ -5,7 +5,11 @@ temp/
 .wwebjs_cache/
 users.json
 release/*.zip
+release/*.exe
+release/*.cmd
+release/*.ps1
 release/*.txt
+release/.cache/
 *.log
 Thumbs.db
 .DS_Store
