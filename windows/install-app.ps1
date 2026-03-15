@@ -2,13 +2,15 @@ param(
     [string]$PackageZip = '',
     [string]$InstallRoot = '',
     [switch]$NoLaunch,
-    [switch]$NoShortcuts
+    [switch]$NoShortcuts,
+    [switch]$Silent
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 Add-Type -AssemblyName System.IO.Compression.FileSystem
+Add-Type -AssemblyName System.Windows.Forms
 
 function Write-Step {
     param(
@@ -16,6 +18,24 @@ function Write-Step {
     )
 
     Write-Host "[INSTALL] $Message"
+}
+
+function Show-InstallerMessage {
+    param(
+        [string]$Message,
+        [System.Windows.Forms.MessageBoxIcon]$Icon = [System.Windows.Forms.MessageBoxIcon]::Information
+    )
+
+    if ($Silent) {
+        return
+    }
+
+    [System.Windows.Forms.MessageBox]::Show(
+        $Message,
+        'Bot Impresion Setup',
+        [System.Windows.Forms.MessageBoxButtons]::OK,
+        $Icon
+    ) | Out-Null
 }
 
 function Get-JsonFile {
@@ -198,3 +218,25 @@ if (-not $NoLaunch) {
 }
 
 Write-Step "Instalacion completada. Version $($packageManifest.version)"
+
+$resultLines = @(
+    "Instalacion completada.",
+    "Version: $($packageManifest.version)",
+    "Ruta: $InstallRoot"
+)
+
+if ($NoShortcuts) {
+    $resultLines += 'Accesos directos: omitidos.'
+}
+else {
+    $resultLines += 'Accesos directos: escritorio y menu Inicio.'
+}
+
+if ($NoLaunch) {
+    $resultLines += 'Inicio automatico: omitido.'
+}
+else {
+    $resultLines += 'La aplicacion se inicio al finalizar.'
+}
+
+Show-InstallerMessage -Message ($resultLines -join [Environment]::NewLine)

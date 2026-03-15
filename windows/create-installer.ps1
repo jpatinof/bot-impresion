@@ -123,7 +123,7 @@ SEDVersion=3
 [Options]
 PackagePurpose=InstallApp
 ShowInstallProgramWindow=0
-HideExtractAnimation=1
+HideExtractAnimation=0
 UseLongFileName=1
 InsideCompressed=0
 CAB_FixedSize=0
@@ -134,10 +134,10 @@ DisplayLicense=
 FinishMessage=Instalacion de Bot Impresion finalizada.
 TargetName=$installerPath
 FriendlyName=Bot Impresion Setup
-AppLaunched=cmd /c install-app.cmd
+AppLaunched=install-app.cmd
 PostInstallCmd=<None>
-AdminQuietInstCmd=cmd /c install-app.cmd
-UserQuietInstCmd=cmd /c install-app.cmd
+AdminQuietInstCmd=install-app.cmd -Silent
+UserQuietInstCmd=install-app.cmd -Silent
 SourceFiles=SourceFiles
 [SourceFiles]
 SourceFiles0=$workingRoot

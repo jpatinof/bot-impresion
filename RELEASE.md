@@ -19,6 +19,11 @@ Cada release debe adjuntar estos assets con nombres estables:
 - `latest.json`
 - `bot-impresion-setup.exe`
 
+Notas operativas:
+
+- El instalador actual se basa en IExpress y debe lanzar `install-app.cmd` directamente; no envolverlo con `cmd /c`, porque en Windows 10 puede cerrar el bootstrapper sin ejecutar la instalacion.
+- Como el `.exe` no esta firmado, SmartScreen puede bloquear o esconder la ejecucion; indica al usuario que use `Mas informacion` -> `Ejecutar de todas formas`.
+
 Asset opcional recomendado para soporte o reinstalacion manual:
 
 - `bot-impresion-windows-package.zip`

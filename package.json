@@ -1,6 +1,6 @@
 {
   "name": "bot-impresion",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Bot de WhatsApp para imprimir documentos en Windows y Linux",
   "repository": {
     "type": "git",
