@@ -122,7 +122,7 @@ $packageDirectory = Join-Path $InstallRoot '.package'
 $stagingDirectory = Join-Path $packageDirectory 'staging'
 $packageCopyPath = Join-Path $packageDirectory 'bot-impresion-windows-package.zip'
 $versionFilePath = Join-Path $InstallRoot 'version.json'
-$launcherPath = Join-Path $InstallRoot 'launch-bot-impresion.cmd'
+$launcherPath = Join-Path $appDirectory 'windows\launch-tray-hidden.vbs'
 $desktopShortcutPath = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Bot Impresion.lnk'
 $startMenuDirectory = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Bot Impresion'
 $startMenuShortcutPath = Join-Path $startMenuDirectory 'Bot Impresion.lnk'
@@ -180,18 +180,6 @@ $robocopyExit = $LASTEXITCODE
 if ($robocopyExit -ge 8) {
     throw "Robocopy fallo con codigo $robocopyExit. Revisa $robocopyLog"
 }
-
-Write-Step 'Generando lanzador local...'
-$launcherLines = @(
-    '@echo off',
-    'setlocal',
-    'set "BOT_IMPRESION_HOME=%~dp0app"',
-    ('set "BOT_IMPRESION_INSTALL_ROOT=' + $InstallRoot + '"'),
-    ('set "BOT_IMPRESION_DATA_DIR=' + $dataDirectory + '"'),
-    'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0app\windows\tray.ps1"',
-    'endlocal'
-)
-[System.IO.File]::WriteAllLines($launcherPath, $launcherLines)
 
 Write-Step 'Guardando version instalada...'
 $versionPayload = [PSCustomObject]@{

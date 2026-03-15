@@ -1,6 +1,6 @@
 {
   "manifestUrl": "https://github.com/jpatinof/bot-impresion/releases/latest/download/latest.json",
-  "currentVersion": "1.1.2",
+  "currentVersion": "1.1.3",
   "appName": "Bot Impresion",
   "downloadDirectory": "downloads",
   "githubRepo": "jpatinof/bot-impresion",
