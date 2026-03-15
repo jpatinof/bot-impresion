@@ -40,7 +40,13 @@ function Get-Manifest {
 
     $manifestUrl = Resolve-ManifestUrl
     $response = Invoke-WebRequest -Uri $manifestUrl -UseBasicParsing -TimeoutSec 30
-    return $response.Content | ConvertFrom-Json
+
+    $rawContent = $response.Content
+    if ($rawContent -is [byte[]]) {
+        $rawContent = [System.Text.Encoding]::UTF8.GetString($rawContent)
+    }
+
+    return ([string]$rawContent) | ConvertFrom-Json
 }
 
 function Resolve-ManifestUrl {
