@@ -10,6 +10,9 @@ release/*.cmd
 release/*.ps1
 release/*.txt
 release/.cache/
+release/downloaded-*/
+release/iextract-*/
+release/install-verification/
 *.log
 Thumbs.db
 .DS_Store

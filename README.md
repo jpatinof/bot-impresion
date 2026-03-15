@@ -16,7 +16,7 @@ El proyecto ya queda preparado para distribucion simple en Windows con instalado
 1. Descarga `bot-impresion-setup.exe` desde Releases.
 2. Ejecuta el instalador. Si Windows SmartScreen muestra una alerta por ser una app sin firma, usa `Mas informacion` -> `Ejecutar de todas formas`.
 3. Espera a que cree la carpeta `%LOCALAPPDATA%\BotImpresion`, los accesos directos y arranque el bot.
-4. Escanea el QR de WhatsApp cuando aparezca.
+4. Si no hay sesion guardada, se abrira una ventana de Windows con el QR de WhatsApp; escanealo desde el telefono.
 5. Si tu impresora no se llama `L220`, define `PRINTER_NAME` en Windows antes de iniciar de nuevo.
 
 ### Actualizar en Windows
@@ -28,6 +28,8 @@ La bandeja de Windows puede comprobar actualizaciones y descargar/ejecutar la nu
 - `npm install`
 - `npm run validate`
 - `npm start`
+
+En Windows, cuando WhatsApp pida autenticacion, el bot genera `whatsapp-qr.png` y `state.json` dentro de `%LOCALAPPDATA%\BotImpresion\data\qr-window` para que la ventanita del QR se actualice y se cierre al completar la sesion.
 
 ### Construir instalador Windows
 

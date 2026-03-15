@@ -1,8 +1,9 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
+const QRCode = require('qrcode');
 const fs = require('fs');
 const path = require('path');
-const { execFile } = require('child_process');
+const { execFile, spawn } = require('child_process');
 const { promisify } = require('util');
 const { createCanvas } = require('@napi-rs/canvas');
 
@@ -18,6 +19,10 @@ const PRINTER_NAME = process.env.PRINTER_NAME || 'L220';
 const USERS_FILE = path.join(APP_DATA_DIR, 'users.json');
 const TEMP_DIR = path.join(APP_DATA_DIR, 'temp');
 const WINDOWS_DIR = path.join(__dirname, 'windows');
+const QR_WINDOW_DIR = path.join(APP_DATA_DIR, 'qr-window');
+const QR_WINDOW_IMAGE_PATH = path.join(QR_WINDOW_DIR, 'whatsapp-qr.png');
+const QR_WINDOW_STATE_PATH = path.join(QR_WINDOW_DIR, 'state.json');
+const QR_WINDOW_SCRIPT = path.join(WINDOWS_DIR, 'whatsapp-qr-window.ps1');
 const PASSWORD_MAX_ATTEMPTS = 3;
 const PASSWORD_TTL_MS = 10 * 60 * 1000;
 const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tif', '.tiff']);
@@ -57,6 +62,7 @@ const MIME_EXTENSION_MAP = {
 
 const pendingPasswordRequests = new Map();
 let pdfjsLibPromise = null;
+let qrWindowProcess = null;
 
 class PdfPasswordError extends Error {
     constructor(code) {
@@ -94,6 +100,117 @@ function ensureDirectory(dirPath) {
     if (!fs.existsSync(dirPath)) {
         fs.mkdirSync(dirPath, { recursive: true });
     }
+}
+
+function writeJsonFile(filePath, payload) {
+    fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), 'utf-8');
+}
+
+function updateQrWindowState(status, extra = {}) {
+    if (!IS_WINDOWS) {
+        return;
+    }
+
+    try {
+        ensureDirectory(QR_WINDOW_DIR);
+        writeJsonFile(QR_WINDOW_STATE_PATH, {
+            status,
+            updatedAt: new Date().toISOString(),
+            ...extra
+        });
+    } catch (err) {
+        console.error('[QR] No se pudo actualizar el estado de la ventana QR:', err.message);
+    }
+}
+
+function closeQrWindow() {
+    updateQrWindowState('ready');
+
+    if (qrWindowProcess && !qrWindowProcess.killed) {
+        qrWindowProcess.kill();
+        qrWindowProcess = null;
+    }
+}
+
+function ensureQrWindow() {
+    if (!IS_WINDOWS || !fs.existsSync(QR_WINDOW_SCRIPT)) {
+        return;
+    }
+
+    if (qrWindowProcess && !qrWindowProcess.killed) {
+        return;
+    }
+
+    qrWindowProcess = spawn('powershell.exe', [
+        '-NoProfile',
+        '-ExecutionPolicy', 'Bypass',
+        '-WindowStyle', 'Hidden',
+        '-File', QR_WINDOW_SCRIPT,
+        '-StatePath', QR_WINDOW_STATE_PATH,
+        '-ImagePath', QR_WINDOW_IMAGE_PATH,
+        '-ParentProcessId', String(process.pid)
+    ], {
+        stdio: 'ignore',
+        windowsHide: true
+    });
+
+    qrWindowProcess.on('exit', () => {
+        qrWindowProcess = null;
+    });
+
+    qrWindowProcess.on('error', (err) => {
+        console.error('[QR] No se pudo abrir la ventana QR de Windows:', err.message);
+        qrWindowProcess = null;
+    });
+}
+
+async function renderQrImage(qrText) {
+    ensureDirectory(QR_WINDOW_DIR);
+    await QRCode.toFile(QR_WINDOW_IMAGE_PATH, qrText, {
+        type: 'png',
+        width: 360,
+        margin: 2,
+        color: {
+            dark: '#111827',
+            light: '#FFFFFFFF'
+        }
+    });
+}
+
+async function handleQrReceived(qrText) {
+    console.log('[QR] Escanea el siguiente codigo QR con WhatsApp:');
+    qrcode.generate(qrText, { small: true });
+
+    if (!IS_WINDOWS) {
+        return;
+    }
+
+    try {
+        await renderQrImage(qrText);
+        updateQrWindowState('qr', {
+            title: 'Vincular WhatsApp',
+            message: 'Escanea este codigo QR con WhatsApp para iniciar sesion en el bot.'
+        });
+        ensureQrWindow();
+    } catch (err) {
+        console.error('[QR] No se pudo preparar la ventana QR de Windows:', err.message);
+    }
+}
+
+function registerProcessShutdownHandlers() {
+    const shutdown = () => {
+        closeQrWindow();
+    };
+
+    process.on('exit', shutdown);
+    process.on('SIGINT', () => {
+        shutdown();
+        process.exit(0);
+    });
+    process.on('SIGTERM', () => {
+        shutdown();
+        process.exit(0);
+    });
 }
 
 function loadUsers() {
@@ -871,25 +988,34 @@ const client = new Client({
     }
 });
 
-client.on('qr', (qr) => {
-    console.log('[QR] Escanea el siguiente codigo QR con WhatsApp:');
-    qrcode.generate(qr, { small: true });
+client.on('qr', async (qr) => {
+    await handleQrReceived(qr);
 });
 
 client.on('authenticated', () => {
     console.log('[AUTH] Autenticacion exitosa.');
+    closeQrWindow();
 });
 
 client.on('auth_failure', (message) => {
     console.error('[AUTH] Fallo de autenticacion:', message);
+    updateQrWindowState('waiting', {
+        title: 'Esperando nuevo codigo QR',
+        message: 'La autenticacion fallo. Espera a que WhatsApp genere un nuevo codigo QR.'
+    });
 });
 
 client.on('disconnected', (reason) => {
     console.warn('[WA] Cliente desconectado:', reason);
+    updateQrWindowState('waiting', {
+        title: 'Sesion desconectada',
+        message: 'La sesion se desconecto. Espera a que aparezca un nuevo codigo QR si hace falta.'
+    });
 });
 
 client.on('ready', async () => {
     console.log('[READY] Bot de impresion listo en', process.platform);
+    closeQrWindow();
 
     try {
         const users = loadUsers();
@@ -934,6 +1060,8 @@ client.on('message', async (msg) => {
 
 ensureDirectory(APP_DATA_DIR);
 ensureDirectory(TEMP_DIR);
+updateQrWindowState('ready');
+registerProcessShutdownHandlers();
 setInterval(purgeExpiredPasswordRequests, 60 * 1000).unref();
 
 console.log('[START] Iniciando bot de impresion...');

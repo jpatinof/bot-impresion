@@ -1,6 +1,6 @@
 {
   "name": "bot-impresion",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Bot de WhatsApp para imprimir documentos en Windows y Linux",
   "repository": {
     "type": "git",
@@ -19,7 +19,8 @@
   "dependencies": {
     "@napi-rs/canvas": "^0.1.69",
     "pdfjs-dist": "^5.4.394",
-    "whatsapp-web.js": "^1.26.0",
-    "qrcode-terminal": "^0.12.0"
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.26.0"
   }
 }
