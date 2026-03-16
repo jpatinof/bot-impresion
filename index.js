@@ -22,6 +22,7 @@ const WINDOWS_DIR = path.join(__dirname, 'windows');
 const QR_WINDOW_DIR = path.join(APP_DATA_DIR, 'qr-window');
 const QR_WINDOW_IMAGE_PATH = path.join(QR_WINDOW_DIR, 'whatsapp-qr.png');
 const QR_WINDOW_STATE_PATH = path.join(QR_WINDOW_DIR, 'state.json');
+const QR_WINDOW_LAUNCHER = path.join(WINDOWS_DIR, 'launch-qr-window.vbs');
 const QR_WINDOW_SCRIPT = path.join(WINDOWS_DIR, 'whatsapp-qr-window.ps1');
 const PASSWORD_MAX_ATTEMPTS = 3;
 const PASSWORD_TTL_MS = 10 * 60 * 1000;
@@ -133,7 +134,7 @@ function closeQrWindow() {
 }
 
 function ensureQrWindow() {
-    if (!IS_WINDOWS || !fs.existsSync(QR_WINDOW_SCRIPT)) {
+    if (!IS_WINDOWS) {
         return;
     }
 
@@ -141,18 +142,31 @@ function ensureQrWindow() {
         return;
     }
 
-    qrWindowProcess = spawn('powershell.exe', [
-        '-NoProfile',
-        '-ExecutionPolicy', 'Bypass',
-        '-WindowStyle', 'Hidden',
-        '-File', QR_WINDOW_SCRIPT,
-        '-StatePath', QR_WINDOW_STATE_PATH,
-        '-ImagePath', QR_WINDOW_IMAGE_PATH,
-        '-ParentProcessId', String(process.pid)
-    ], {
-        stdio: 'ignore',
-        windowsHide: true
-    });
+    if (fs.existsSync(QR_WINDOW_LAUNCHER)) {
+        qrWindowProcess = spawn('wscript.exe', [
+            QR_WINDOW_LAUNCHER,
+            QR_WINDOW_STATE_PATH,
+            QR_WINDOW_IMAGE_PATH,
+            String(process.pid)
+        ], {
+            stdio: 'ignore',
+            windowsHide: true
+        });
+    } else if (fs.existsSync(QR_WINDOW_SCRIPT)) {
+        qrWindowProcess = spawn('powershell.exe', [
+            '-NoProfile',
+            '-ExecutionPolicy', 'Bypass',
+            '-File', QR_WINDOW_SCRIPT,
+            '-StatePath', QR_WINDOW_STATE_PATH,
+            '-ImagePath', QR_WINDOW_IMAGE_PATH,
+            '-ParentProcessId', String(process.pid)
+        ], {
+            stdio: 'ignore',
+            windowsHide: true
+        });
+    } else {
+        return;
+    }
 
     qrWindowProcess.on('exit', () => {
         qrWindowProcess = null;

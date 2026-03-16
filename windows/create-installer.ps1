@@ -66,9 +66,9 @@ $workingRoot = Join-Path $buildRoot 'iexpress'
 $packageZipPath = Join-Path $workingRoot $PackageName
 $installerPath = Join-Path $OutputDirectory $InstallerName
 $sedPath = Join-Path $workingRoot 'bot-impresion-installer.sed'
-$cmdPath = Join-Path $workingRoot 'install-app.cmd'
 $ps1Path = Join-Path $workingRoot 'install-app.ps1'
 $packageRootManifestPath = Join-Path $packageRoot 'package.json'
+$installCommand = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File install-app.ps1'
 
 Write-Step 'Verificando dependencias locales...'
 if (-not (Test-Path -LiteralPath (Join-Path $projectRoot 'node_modules'))) {
@@ -114,7 +114,6 @@ Write-Step 'Creando paquete ZIP de la aplicacion...'
 [System.IO.Compression.ZipFile]::CreateFromDirectory($packageRoot, $packageZipPath, [System.IO.Compression.CompressionLevel]::Optimal, $false)
 
 Copy-Item -LiteralPath (Join-Path $scriptDirectory 'install-app.ps1') -Destination $ps1Path -Force
-Copy-Item -LiteralPath (Join-Path $scriptDirectory 'install-app.cmd') -Destination $cmdPath -Force
 
 $sedContent = @"
 [Version]
@@ -134,21 +133,19 @@ DisplayLicense=
 FinishMessage=Instalacion de Bot Impresion finalizada.
 TargetName=$installerPath
 FriendlyName=Bot Impresion Setup
-AppLaunched=install-app.cmd
+AppLaunched=$installCommand
 PostInstallCmd=<None>
-AdminQuietInstCmd=install-app.cmd -Silent
-UserQuietInstCmd=install-app.cmd -Silent
+AdminQuietInstCmd=$installCommand -Silent
+UserQuietInstCmd=$installCommand -Silent
 SourceFiles=SourceFiles
 [SourceFiles]
 SourceFiles0=$workingRoot
 [SourceFiles0]
 %FILE1%=
 %FILE2%=
-%FILE3%=
 [Strings]
-FILE1="$(Split-Path -Leaf $cmdPath)"
-FILE2="$(Split-Path -Leaf $ps1Path)"
-FILE3="$(Split-Path -Leaf $packageZipPath)"
+FILE1="$(Split-Path -Leaf $ps1Path)"
+FILE2="$(Split-Path -Leaf $packageZipPath)"
 "@
 [System.IO.File]::WriteAllText($sedPath, $sedContent)
 

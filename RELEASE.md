@@ -21,7 +21,7 @@ Cada release debe adjuntar estos assets con nombres estables:
 
 Notas operativas:
 
-- El instalador actual se basa en IExpress y debe lanzar `install-app.cmd` directamente; no envolverlo con `cmd /c`, porque en Windows 10 puede cerrar el bootstrapper sin ejecutar la instalacion.
+- El instalador actual se basa en IExpress y debe lanzar `powershell.exe -File install-app.ps1` directamente. Ejecutar `install-app.cmd` desde IExpress puede fallar con `Error en la creacion del proceso ...\install-app.cmd` en algunos equipos.
 - Como el `.exe` no esta firmado, SmartScreen puede bloquear o esconder la ejecucion; indica al usuario que use `Mas informacion` -> `Ejecutar de todas formas`.
 
 Asset opcional recomendado para soporte o reinstalacion manual:
