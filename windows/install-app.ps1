@@ -200,6 +200,14 @@ if (-not $NoShortcuts) {
     New-Shortcut -ShortcutPath $startMenuShortcutPath -TargetPath $launcherPath -WorkingDirectory $InstallRoot -Description 'Bot Impresion'
 }
 
+Write-Step 'Configurando inicio automatico con Windows...'
+$runKeyPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
+$runKeyName = 'BotImpresion'
+$wscriptExe = Join-Path $env:SystemRoot 'System32\wscript.exe'
+$autoStartCommand = "`"$wscriptExe`" `"$launcherPath`""
+Set-ItemProperty -Path $runKeyPath -Name $runKeyName -Value $autoStartCommand -Force
+Write-Step "Inicio automatico registrado: $autoStartCommand"
+
 if (-not $NoLaunch) {
     Write-Step 'Iniciando aplicacion...'
     Start-Process -FilePath $launcherPath -WorkingDirectory $InstallRoot | Out-Null
@@ -210,7 +218,8 @@ Write-Step "Instalacion completada. Version $($packageManifest.version)"
 $resultLines = @(
     "Instalacion completada.",
     "Version: $($packageManifest.version)",
-    "Ruta: $InstallRoot"
+    "Ruta: $InstallRoot",
+    "Inicio automatico con Windows: configurado."
 )
 
 if ($NoShortcuts) {
